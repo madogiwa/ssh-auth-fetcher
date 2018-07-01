@@ -6,7 +6,7 @@
   - (Optional) Instead of deploy config file, You can generate config file as followings.
 
 ```
-echo "key_url=\"https://github.com/\${username}.keys" >> /usr/local/etc/ssh-auth-fetcher.conf
+echo "key_url=\"https://github.com/\${username}.keys\"" > /usr/local/etc/ssh-auth-fetcher.conf
 ```
 
 - Specify `/usr/local/bin/ssh-auth-fetcher` as `AuthorizedKeysCommand` in `/etc/ssh/sshd_config`.
