@@ -47,20 +47,22 @@ if [ -z "${key_url}" ]; then
     exit 54
 fi
 
-##
-## fetch & output remote key
-##
-if [ "$use_cache" -eq 0 ]; then
+fetch_and_output () {
     if which curl > /dev/null; then
         curl -sL -m ${timeout} "${key_url}"
-        exit 0
     elif which wget > /dev/null; then
         wget -q -O - --timeout=${timeout} "${key_url}"
-        exit 0
     else
         ## no fetcher program
         exit 61
     fi
+}
+##
+## fetch & output remote key
+##
+if [ "$use_cache" -eq 0 ]; then
+    fetch_and_output
+    exit 0
 fi
 
 ## cache directory exist?
@@ -86,7 +88,12 @@ if [ `expr "${modified}" + "${cache_ttl}"` -gt ${now} ]; then
 fi
 
 ## fetch remote key
-temp_file="`mktemp -q ${cache_file}.XXXXXXXX`"
+temp_file="`mktemp -q ${cache_file}.XXXXXXXX`" &&:
+if [ $? -ne 0 ]; then
+    ## fallback to direct output
+    fetch_and_output
+    exit 0
+fi
 
 exit_handler() {
     /bin/rm -f "${temp_file}"
