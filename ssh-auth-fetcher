@@ -1,0 +1,54 @@
+#!/bin/sh
+##
+## Authorized_keys fetcher for SSH AuthorizedKeysCommand
+##
+
+## When command fails, the shell exit immediately.
+set -e
+
+##
+## environments
+##
+: ${SSH_AUTH_FETCHER_CONFIG_FILE:="/usr/local/etc/ssh-auth-fetcher.conf"}
+: ${SSH_AUTH_FETCHER_TIMEOUT:=15}
+
+##
+## load config
+##
+username="${1}"
+key_url=""
+timeout="${SSH_AUTH_FETCHER_TIMEOUT}"
+
+## username specified?
+if [ -z "${username}" ]; then
+    exit 1
+fi
+
+## valid username?
+if echo "${username}" | grep -v -E '^[a-z_][a-z0-9_-]*$' > /dev/null; then
+    exit 2
+fi
+
+## config file exist?
+if [ ! -e "${SSH_AUTH_FETCHER_CONFIG_FILE}" ]; then
+    exit 3
+fi
+
+source "${SSH_AUTH_FETCHER_CONFIG_FILE}"
+
+## key_url specified?
+if [ -z "${key_url}" ]; then
+    exit 4
+fi
+
+##
+## fetch remote key
+##
+if which curl > /dev/null; then
+    curl -sL -m ${timeout} "${key_url}"
+elif which wget > /dev/null; then
+    wget -q -O - --timeout=${timeout} "${key_url}"
+else
+    ## no fetcher program
+    exit 11
+fi
