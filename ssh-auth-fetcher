@@ -11,6 +11,9 @@ set -e
 ##
 : ${SSH_AUTH_FETCHER_CONFIG_FILE:="/usr/local/etc/ssh-auth-fetcher.conf"}
 : ${SSH_AUTH_FETCHER_TIMEOUT:=15}
+: ${SSH_AUTH_FETCHER_USE_CACHE:=0}
+: ${SSH_AUTH_FETCHER_CACHE_DIR:="/var/cache/ssh-auth-fetcher"}
+: ${SSH_AUTH_FETCHER_CACHE_TTL:=3600}
 
 ##
 ## load config
@@ -18,37 +21,94 @@ set -e
 username="${1}"
 key_url=""
 timeout="${SSH_AUTH_FETCHER_TIMEOUT}"
+use_cache="${SSH_AUTH_FETCHER_USE_CACHE}"
+cache_dir="${SSH_AUTH_FETCHER_CACHE_DIR}"
+cache_ttl="${SSH_AUTH_FETCHER_CACHE_TTL}"
 
 ## username specified?
 if [ -z "${username}" ]; then
-    exit 1
+    exit 51
 fi
 
 ## valid username?
 if echo "${username}" | grep -v -E '^[a-z_][a-z0-9_-]*$' > /dev/null; then
-    exit 2
+    exit 52
 fi
 
 ## config file exist?
 if [ ! -e "${SSH_AUTH_FETCHER_CONFIG_FILE}" ]; then
-    exit 3
+    exit 53
 fi
 
 source "${SSH_AUTH_FETCHER_CONFIG_FILE}"
 
 ## key_url specified?
 if [ -z "${key_url}" ]; then
-    exit 4
+    exit 54
 fi
 
 ##
-## fetch remote key
+## fetch & output remote key
 ##
+if [ "$use_cache" -eq 0 ]; then
+    if which curl > /dev/null; then
+        curl -sL -m ${timeout} "${key_url}"
+        exit 0
+    elif which wget > /dev/null; then
+        wget -q -O - --timeout=${timeout} "${key_url}"
+        exit 0
+    else
+        ## no fetcher program
+        exit 61
+    fi
+fi
+
+## cache directory exist?
+if [ ! -d "${cache_dir}" ] || [ ! -w "${cache_dir}" ]; then
+    exit 71
+fi
+
+cache_file="${cache_dir}/${username}.key"
+modified="`stat -c '%Y' ${cache_file} 2>&1`" &&:
+if [ $? -ne 0 ]; then
+    ## try BSD style
+    modified="`stat -f '%m' ${cache_file} 2>&1`" &&:
+    if [ $? -ne 0 ]; then
+        modified=0
+    fi
+fi
+
+## cache lived?
+now="`date +%s`"
+if [ `expr "${modified}" + "${cache_ttl}"` -gt ${now} ]; then
+    cat "${cache_file}"
+    exit 0
+fi
+
+## fetch remote key
+temp_file="`mktemp -q ${cache_file}.XXXXXXXX`"
+
+exit_handler() {
+    /bin/rm -f "${temp_file}"
+}
+
+trap 'exit_handler' EXIT INT HUP TERM PIPE
+
 if which curl > /dev/null; then
-    curl -sL -m ${timeout} "${key_url}"
+    curl -sL -m ${timeout} -o "${temp_file}" "${key_url}" &&:
+    if [ $? -ne 0 ]; then
+        exit 73
+    fi
 elif which wget > /dev/null; then
-    wget -q -O - --timeout=${timeout} "${key_url}"
+    wget -q --timeout=${timeout} -O "${temp_file}" "${key_url}" &&:
+    if [ $? -ne 0 ]; then
+        exit 73
+    fi
 else
     ## no fetcher program
-    exit 11
+    exit 74
 fi
+
+/bin/mv "${temp_file}" "${cache_file}"
+cat "${cache_file}"
+exit 0
