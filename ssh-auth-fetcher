@@ -87,8 +87,20 @@ if [ `expr "${modified}" + "${cache_ttl}"` -gt ${now} ]; then
     exit 0
 fi
 
+##
 ## fetch remote key
+##
+
+## create temporary file
 temp_file="`mktemp -q ${cache_file}.XXXXXXXX`" &&:
+if [ $? -ne 0 ]; then
+    ## fallback to direct output
+    fetch_and_output
+    exit 0
+fi
+
+## writable? (disk full check)
+echo "" > "${temp_file}" &&:
 if [ $? -ne 0 ]; then
     ## fallback to direct output
     fetch_and_output
