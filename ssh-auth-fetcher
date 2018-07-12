@@ -14,6 +14,8 @@ set -e
 : ${SSH_AUTH_FETCHER_USE_CACHE:=0}
 : ${SSH_AUTH_FETCHER_CACHE_DIR:="/var/cache/ssh-auth-fetcher"}
 : ${SSH_AUTH_FETCHER_CACHE_TTL:=3600}
+: ${SSH_AUTH_FETCHER_EXCLUDE_USERS:=""}
+: ${SSH_AUTH_FETCHER_INCLUDE_USERS:=""}
 
 ##
 ## load config
@@ -24,6 +26,8 @@ timeout="${SSH_AUTH_FETCHER_TIMEOUT}"
 use_cache="${SSH_AUTH_FETCHER_USE_CACHE}"
 cache_dir="${SSH_AUTH_FETCHER_CACHE_DIR}"
 cache_ttl="${SSH_AUTH_FETCHER_CACHE_TTL}"
+exclude_users="${SSH_AUTH_FETCHER_EXCLUDE_USERS}"
+include_users="${SSH_AUTH_FETCHER_INCLUDE_USERS}"
 
 ## username specified?
 if [ -z "${username}" ]; then
@@ -33,6 +37,31 @@ fi
 ## valid username?
 if echo "${username}" | grep -v -E '^[a-z_][a-z0-9_-]*$' > /dev/null; then
     exit 52
+fi
+
+## check whitelist & blacklist
+if [ ! -z "${include_users}" ]; then
+    match=0
+
+    users=`echo ${include_users} | sed "s/\s//g" | sed "s/,/ /g"`
+    for u in ${users}
+    do
+        if [ "${username}" = "${u}" ]; then
+            match=1
+        fi
+    done
+
+    if [ $match -ne 1 ]; then
+        exit 55
+    fi
+elif [ ! -z "${exclude_users}" ]; then
+    users=`echo ${exclude_users} | sed "s/\s//g" | sed "s/,/ /g"`
+    for u in ${users};
+    do
+        if [ "${username}" = "${u}" ]; then
+            exit 56
+        fi
+    done
 fi
 
 ## config file exist?
