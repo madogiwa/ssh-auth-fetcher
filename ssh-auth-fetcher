@@ -78,7 +78,7 @@ fi
 
 fetch_and_output () {
     if which curl > /dev/null; then
-        curl -sL -m ${timeout} "${key_url}"
+        curl -sL -f -m ${timeout} "${key_url}"
     elif which wget > /dev/null; then
         wget -q -O - --timeout=${timeout} "${key_url}"
     else
@@ -143,7 +143,7 @@ exit_handler() {
 trap 'exit_handler' EXIT INT HUP TERM PIPE
 
 if which curl > /dev/null; then
-    curl -sL -m ${timeout} -o "${temp_file}" "${key_url}" &&:
+    curl -sL -f -m ${timeout} -o "${temp_file}" "${key_url}" &&:
     if [ $? -ne 0 ]; then
         exit 73
     fi
