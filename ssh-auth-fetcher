@@ -80,7 +80,7 @@ fi
 
 fetch_and_output () {
     if which curl > /dev/null; then
-        curl -sL -f -m ${timeout} --retry ${retry} "${key_url}"
+        curl -sL -f -m ${timeout} --retry ${retry} --retry-connrefused "${key_url}"
     elif which wget > /dev/null; then
         wget -q -O - --timeout=${timeout} --tries=${retry} --retry-connrefused "${key_url}"
     else
@@ -145,7 +145,7 @@ exit_handler() {
 trap 'exit_handler' EXIT INT HUP TERM PIPE
 
 if which curl > /dev/null; then
-    curl -sL -f -m ${timeout} -o "${temp_file}" "${key_url}" &&:
+    curl -sL -f -m ${timeout} --retry ${retry} --retry-connrefused -o "${temp_file}" "${key_url}" &&:
     if [ $? -ne 0 ]; then
         exit 73
     fi
