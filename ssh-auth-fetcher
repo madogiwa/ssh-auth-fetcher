@@ -17,6 +17,7 @@ set -e
 : ${SSH_AUTH_FETCHER_CACHE_TTL:=3600}
 : ${SSH_AUTH_FETCHER_EXCLUDE_USERS:=""}
 : ${SSH_AUTH_FETCHER_INCLUDE_USERS:=""}
+: ${SSH_AUTH_FETCHER_HEADERS:=""}
 
 ##
 ## load config
@@ -30,6 +31,7 @@ cache_dir="${SSH_AUTH_FETCHER_CACHE_DIR}"
 cache_ttl="${SSH_AUTH_FETCHER_CACHE_TTL}"
 exclude_users="${SSH_AUTH_FETCHER_EXCLUDE_USERS}"
 include_users="${SSH_AUTH_FETCHER_INCLUDE_USERS}"
+headers="${SSH_AUTH_FETCHER_HEADERS}"
 
 ## username specified?
 if [ -z "${username}" ]; then
@@ -82,11 +84,13 @@ fi
 fetch_and_output () {
     if which curl > /dev/null; then
         options="-sL -f -m ${timeout} --retry ${retry} --retry-connrefused"
+        [ -n "${headers}" ] && options="${options} `echo \"${headers};\" | sed -e \"s/\([^;]*\);/ --header '\1'/g\"`"
         [ -n "${1}" ] && options="${options} -o '${1}'"
         cmd="curl ${options} '${key_url}'"
         eval "${cmd}"
     elif which wget > /dev/null; then
         options="-q --timeout=${timeout} --tries=${retry} --retry-connrefused --no-use-server-timestamps"
+        [ -n "${headers}" ] && options="${options} `echo \"${headers};\" | sed -e \"s/\([^;]*\);/ --header=\\'\1\\'/g\"`"
         [ -n "${1}" ] && options="${options} -O '${1}'" || options="${options} -O -"
         cmd="wget ${options} '${key_url}'"
         eval "${cmd}"
