@@ -10,9 +10,9 @@ echo "key_url=\"https://github.com/\${username}.keys\"" > /usr/local/etc/ssh-aut
 ```
 
 - Specify `/usr/local/bin/ssh-auth-fetcher` as `AuthorizedKeysCommand` in `/etc/ssh/sshd_config`.
-  - We recommend using `timeout` command together.
 
 ```
-AuthorizedKeysCommand /usr/bin/timeout 30 /usr/local/bin/ssh-auth-fetcher %u
+AuthorizedKeysCommand /usr/local/bin/ssh-auth-fetcher
 AuthorizedKeysCommandUser nobody
 ```
+
