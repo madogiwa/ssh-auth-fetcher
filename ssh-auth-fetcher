@@ -78,21 +78,29 @@ if [ -z "${key_url}" ]; then
     exit 54
 fi
 
+
 fetch_and_output () {
     if which curl > /dev/null; then
-        curl -sL -f -m ${timeout} --retry ${retry} --retry-connrefused "${key_url}"
+        options="-sL -f -m ${timeout} --retry ${retry} --retry-connrefused"
+        [ -n "${1}" ] && options="${options} -o '${1}'"
+        cmd="curl ${options} '${key_url}'"
+        eval "${cmd}"
     elif which wget > /dev/null; then
-        wget -q -O - --timeout=${timeout} --tries=${retry} --retry-connrefused --no-use-server-timestamps "${key_url}"
+        options="-q --timeout=${timeout} --tries=${retry} --retry-connrefused --no-use-server-timestamps"
+        [ -n "${1}" ] && options="${options} -O '${1}'" || options="${options} -O -"
+        cmd="wget ${options} '${key_url}'"
+        eval "${cmd}"
     else
         ## no fetcher program
         exit 61
     fi
 }
+
 ##
 ## fetch & output remote key
 ##
 if [ "$use_cache" -eq 0 ]; then
-    fetch_and_output
+    fetch_and_output ""
     exit 0
 fi
 
@@ -102,10 +110,10 @@ if [ ! -d "${cache_dir}" ] || [ ! -w "${cache_dir}" ]; then
 fi
 
 cache_file="${cache_dir}/${username}.key"
-modified="`stat -c '%Y' ${cache_file} 2>&1`" &&:
+modified="`stat -c '%Y' \"${cache_file}\" 2>&1`" &&:
 if [ $? -ne 0 ]; then
     ## try BSD style
-    modified="`stat -f '%m' ${cache_file} 2>&1`" &&:
+    modified="`stat -f '%m' \"${cache_file}\" 2>&1`" &&:
     if [ $? -ne 0 ]; then
         modified=0
     fi
@@ -123,10 +131,10 @@ fi
 ##
 
 ## create temporary file
-temp_file="`mktemp -q ${cache_file}.XXXXXXXX`" &&:
+temp_file="`mktemp -q \"${cache_file}.XXXXXXXX\"`" &&:
 if [ $? -ne 0 ]; then
     ## fallback to direct output
-    fetch_and_output
+    fetch_and_output ""
     exit 0
 fi
 
@@ -134,7 +142,7 @@ fi
 echo "" > "${temp_file}" &&:
 if [ $? -ne 0 ]; then
     ## fallback to direct output
-    fetch_and_output
+    fetch_and_output ""
     exit 0
 fi
 
@@ -144,20 +152,7 @@ exit_handler() {
 
 trap 'exit_handler' EXIT INT HUP TERM PIPE
 
-if which curl > /dev/null; then
-    curl -sL -f -m ${timeout} --retry ${retry} --retry-connrefused -o "${temp_file}" "${key_url}" &&:
-    if [ $? -ne 0 ]; then
-        exit 73
-    fi
-elif which wget > /dev/null; then
-    wget -q --timeout=${timeout} --tries=${retry} --retry-connrefused --no-use-server-timestamps -O "${temp_file}" "${key_url}" &&:
-    if [ $? -ne 0 ]; then
-        exit 73
-    fi
-else
-    ## no fetcher program
-    exit 74
-fi
+fetch_and_output "${temp_file}"
 
 /bin/mv "${temp_file}" "${cache_file}"
 cat "${cache_file}"
