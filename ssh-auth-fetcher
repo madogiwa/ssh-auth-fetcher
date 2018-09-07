@@ -82,7 +82,7 @@ fetch_and_output () {
     if which curl > /dev/null; then
         curl -sL -f -m ${timeout} --retry ${retry} --retry-connrefused "${key_url}"
     elif which wget > /dev/null; then
-        wget -q -O - --timeout=${timeout} --tries=${retry} --retry-connrefused "${key_url}"
+        wget -q -O - --timeout=${timeout} --tries=${retry} --retry-connrefused --no-use-server-timestamps "${key_url}"
     else
         ## no fetcher program
         exit 61
@@ -150,7 +150,7 @@ if which curl > /dev/null; then
         exit 73
     fi
 elif which wget > /dev/null; then
-    wget -q --timeout=${timeout} --tries=${retry} --retry-connrefused -O "${temp_file}" "${key_url}" &&:
+    wget -q --timeout=${timeout} --tries=${retry} --retry-connrefused --no-use-server-timestamps -O "${temp_file}" "${key_url}" &&:
     if [ $? -ne 0 ]; then
         exit 73
     fi
