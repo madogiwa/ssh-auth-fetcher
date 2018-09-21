@@ -82,17 +82,17 @@ fi
 
 
 fetch_and_output () {
-    if which curl > /dev/null; then
-        options="-sL -f -m ${timeout} --retry ${retry} --retry-connrefused"
-        [ -n "${headers}" ] && options="${options} `echo \"${headers};\" | sed -e \"s/\([^;]*\);/ --header '\1'/g\"`"
-        [ -n "${1}" ] && options="${options} -o '${1}'"
-        cmd="curl ${options} '${key_url}'"
-        eval "${cmd}"
-    elif which wget > /dev/null; then
+    if which wget > /dev/null; then
         options="-q --timeout=${timeout} --tries=${retry} --retry-connrefused --no-use-server-timestamps"
         [ -n "${headers}" ] && options="${options} `echo \"${headers};\" | sed -e \"s/\([^;]*\);/ --header=\\'\1\\'/g\"`"
         [ -n "${1}" ] && options="${options} -O '${1}'" || options="${options} -O -"
         cmd="wget ${options} '${key_url}'"
+        eval "${cmd}"
+    elif which curl > /dev/null; then
+        options="-sL -f -m ${timeout} --retry ${retry} --retry-connrefused"
+        [ -n "${headers}" ] && options="${options} `echo \"${headers};\" | sed -e \"s/\([^;]*\);/ --header '\1'/g\"`"
+        [ -n "${1}" ] && options="${options} -o '${1}'"
+        cmd="curl ${options} '${key_url}'"
         eval "${cmd}"
     else
         ## no fetcher program
