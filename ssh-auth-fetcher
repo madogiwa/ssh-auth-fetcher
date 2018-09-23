@@ -90,6 +90,9 @@ fetch_and_output () {
         eval "${cmd}"
     elif which curl > /dev/null; then
         options="-sL -f -m ${timeout} --retry ${retry} --retry-connrefused"
+        if curl --help | grep 'retry-connrefused' > /dev/null; then
+            options="${options} --retry-connrefused"
+        fi
         [ -n "${headers}" ] && options="${options} `echo \"${headers};\" | sed -e \"s/\([^;]*\);/ --header '\1'/g\"`"
         [ -n "${1}" ] && options="${options} -o '${1}'"
         cmd="curl ${options} '${key_url}'"
