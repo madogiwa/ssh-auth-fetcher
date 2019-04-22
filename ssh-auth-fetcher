@@ -48,7 +48,7 @@ if [ ! -e "${SSH_AUTH_FETCHER_CONFIG_FILE}" ]; then
     exit 53
 fi
 
-source "${SSH_AUTH_FETCHER_CONFIG_FILE}"
+. "${SSH_AUTH_FETCHER_CONFIG_FILE}"
 
 ## key_url specified?
 if [ -z "${key_url}" ]; then
